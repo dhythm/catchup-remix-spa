@@ -1,5 +1,6 @@
 import type { MetaFunction } from "@remix-run/node";
 import { useCallback, useEffect, useState } from "react";
+import * as v from "valibot";
 
 export const meta: MetaFunction = () => {
   return [
@@ -8,19 +9,20 @@ export const meta: MetaFunction = () => {
   ];
 };
 
+const PokemonListSchema = v.object({ name: v.string(), url: v.string() });
+type PokemonListSchemaType = v.InferOutput<typeof PokemonListSchema>;
+
 export default function Index() {
-  const [pokemons, setPokemons] = useState<{ name: string; url: string }[]>([]);
+  const [pokemons, setPokemons] = useState<PokemonListSchemaType[]>([]);
   const getAllPokemons = async () => {
     // The number of current pokemons is 1302
-    const res = await fetch("https://pokeapi.co/api/v2/pokemon/?limit=1500");
-    return await res.json();
+    const res = await fetch("https://pokeapi.co/api/v2/pokemon/?limit=50");
+    return v.parse(v.array(PokemonListSchema), (await res.json()).results);
   };
 
   useEffect(() => {
-    getAllPokemons().then((data) => setPokemons(data.results));
+    getAllPokemons().then((data) => setPokemons(data));
   }, []);
-
-  console.log(pokemons);
 
   return (
     <div className="flex h-screen items-center justify-center">
@@ -42,31 +44,88 @@ export default function Index() {
             />
           </div>
         </header>
-        <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-          <p className="leading-6 text-gray-700 dark:text-gray-200">
-            What&apos;s next?
-          </p>
-          <ul>
-            {pokemons.map((pokemon) => (
-              <PokemonCard key={pokemon.name} url={pokemon.url} />
-            ))}
-          </ul>
-        </nav>
+        <div className="flex flex-wrap">
+          {pokemons.map((pokemon) => (
+            <PokemonCard key={pokemon.name} url={pokemon.url} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
+const PokemonSchema = v.object({
+  abilities: v.array(v.any()),
+  base_experience: v.number(),
+  cries: v.any(),
+  forms: v.array(v.any()),
+  game_indices: v.array(v.any()),
+  height: v.number(),
+  held_items: v.array(v.any()),
+  id: v.number(),
+  is_default: v.boolean(),
+  location_area_encounters: v.string(),
+  moves: v.array(v.any()),
+  name: v.string(),
+  order: v.number(),
+  past_attributes: v.any(),
+  past_types: v.any(),
+  species: v.any(),
+  sprites: v.object({
+    front_default: v.string(),
+  }),
+  versions: v.any(),
+  stats: v.array(
+    v.object({
+      base_stat: v.number(),
+      effort: v.number(),
+      stat: v.object({
+        name: v.string(),
+        url: v.string(),
+      }),
+    })
+  ),
+  types: v.array(
+    v.object({
+      slot: v.number(),
+      type: v.object({
+        name: v.string(),
+        url: v.string(),
+      }),
+    })
+  ),
+  weight: v.number(),
+});
+type PokemonSchemaType = v.InferOutput<typeof PokemonSchema>;
 const PokemonCard = ({ url }: { url: string }) => {
-  // const [pokemon, setPokemon] = useState();
+  const [pokemon, setPokemon] = useState<PokemonSchemaType>();
   const getPokemon = useCallback(async () => {
-    const res = await fetch(url);
-    return await res.json();
+    try {
+      const res = await fetch(url);
+      return v.parse(PokemonSchema, await res.json());
+    } catch {
+      return;
+    }
   }, [url]);
 
   useEffect(() => {
-    getPokemon().then((data) => console.log(data));
+    getPokemon().then((data) => setPokemon(data));
   }, [getPokemon]);
 
-  return <></>;
+  if (!pokemon) return null;
+
+  return (
+    <div className="thumb-container grass w-24">
+      <div className="number">
+        <small>#0{pokemon?.id}</small>
+      </div>
+      <img src={pokemon.sprites.front_default} alt={pokemon.name} />
+      <div className="detail-wrapper">
+        <h4>{pokemon.name}</h4>
+        <p className="text-sm">
+          {pokemon.types.map((data) => data.type.name).join(", ")}
+        </p>
+      </div>
+    </div>
+  );
 };
