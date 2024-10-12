@@ -1,6 +1,6 @@
-# templates/spa
+# Creating Pokedex by Remix SPA with pokeapi
 
-This template leverages [Remix SPA Mode](https://remix.run/docs/en/main/guides/spa-mode) to build your app as a Single-Page Application using [Client Data](https://remix.run/docs/en/main/guides/client-data) for all of your data loads and mutations.
+Powered by https://pokeapi.co/docs/v2
 
 ## Setup
 
